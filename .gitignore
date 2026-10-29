@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+SPEC.md
+PROGRESS.md
+README.md
+my layout.docx
+db/seed.js
+python/requirements.txt

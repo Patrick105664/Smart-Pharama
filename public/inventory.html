@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory – CityCare Pharmacy</title>
+  <meta name="description" content="SPM Inventory – manage medicines, batches, vendors and stock" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <header class="header" id="header"></header>
+    
+    <main class="main-content">
+      <!-- Page Header -->
+      <div class="inventory-header">
+        <div class="inventory-title-group">
+          <h1 class="page-title">Inventory</h1>
+          <span id="inventoryCount" class="badge badge-blue">Loading…</span>
+        </div>
+        <div class="header-actions" id="ownerHeaderActions" style="display:none;">
+          <button class="btn btn-primary" id="btnAddMedicine" onclick="openAddMedicineModal()">
+            + Add Medicine
+          </button>
+          <button class="btn btn-outline" id="btnImportCsv" onclick="openImportCsvModal()">
+            📁 Import CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Sub-tabs -->
+      <div class="sub-tabs">
+        <button type="button" class="sub-tab active" id="tabBatches" onclick="switchInventoryTab('batches')">
+          📦 Batches Stock
+        </button>
+        <button type="button" class="sub-tab" id="tabVendors" onclick="switchInventoryTab('vendors')">
+          🏢 Vendors <span id="vendorsTabBadge" class="badge" style="background:var(--gray-200); color:var(--gray-700); margin-left:4px;">0</span>
+        </button>
+      </div>
+
+      <!-- SECTION 1: Batches Stock -->
+      <div id="batchesSection">
+        <!-- Filters & Search Bar -->
+        <div class="filter-card">
+          <div class="filter-bar">
+            <input type="text" id="filterSearch" class="filter-search" placeholder="Search by medicine name, barcode, batch…" />
+            
+            <select id="filterCategory">
+              <option value="">All Categories</option>
+            </select>
+
+            <select id="filterVendor">
+              <option value="">All Vendors</option>
+            </select>
+
+            <select id="filterSort">
+              <option value="expiry_asc">Sort: Expiry (Earliest first)</option>
+              <option value="expiry_desc">Sort: Expiry (Latest first)</option>
+              <option value="qty_asc">Sort: Stock Qty (Low to High)</option>
+              <option value="qty_desc">Sort: Stock Qty (High to Low)</option>
+              <option value="name_asc">Sort: Name (A to Z)</option>
+              <option value="name_desc">Sort: Name (Z to A)</option>
+              <option value="mrp_asc">Sort: MRP (Low to High)</option>
+              <option value="mrp_desc">Sort: MRP (High to Low)</option>
+            </select>
+
+            <label class="toggle-label" title="Include deactivated medicines and batches">
+              <input type="checkbox" id="filterShowInactive" />
+              <span>Show inactive</span>
+            </label>
+
+            <button type="button" class="btn btn-outline btn-sm" id="btnResetFilters" title="Clear all filters">
+              ↺ Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Inventory Table -->
+        <div class="card table-wrapper">
+          <table id="batchesTable">
+            <thead id="batchesTableHead">
+              <!-- Rendered dynamically by role in inventory.js -->
+            </thead>
+            <tbody id="batchesTableBody">
+              <tr>
+                <td colspan="10" class="table-empty">Loading batches…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Vendors Section -->
+      <div id="vendorsSection" style="display:none;">
+        <div class="filter-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; gap:12px; align-items:center; flex:1; min-width:240px;">
+            <input type="text" id="vendorSearch" class="filter-search" placeholder="Search vendors by name, phone, address…" />
+            <label class="toggle-label" title="Include deactivated vendors">
+              <input type="checkbox" id="vendorShowInactive" />
+              <span>Show inactive</span>
+            </label>
+          </div>
+          <div id="vendorOwnerActions" style="display:none;">
+            <button type="button" class="btn btn-primary" onclick="openAddVendorModal()">
+              + Add Vendor
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-wrapper">
+          <table id="vendorsTable">
+            <thead>
+              <tr>
+                <th>Vendor Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th style="text-align:center;">Status</th>
+                <th id="vendorActionsHeader" style="text-align:center; display:none;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vendorsTableBody">
+              <tr>
+                <td colspan="6" class="table-empty">Loading vendors…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: Add Medicine & Batch -->
+  <div class="modal-overlay" id="modalAddMedicine">
+    <div class="modal" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3>+ Add Medicine & Batch</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalAddMedicine')">&times;</button>
+      </div>
+
+      <div id="addMedError" class="modal-error"></div>
+
+      <form id="formAddMedicine" onsubmit="onAddMedicineSubmit(event)">
+        <!-- Barcode lookup section -->
+        <div class="modal-form-section">
+          <div class="modal-form-section-title">
+            <span>1. Scan or Enter Barcode</span>
+            <small style="text-transform:none; font-weight:normal; color:var(--gray-500);">Auto-checks database</small>
+          </div>
+          <div class="form-group" style="margin-bottom:6px;">
+            <label for="addMedBarcode">Medicine Barcode *</label>
+            <input type="text" id="addMedBarcode" autocomplete="off" required placeholder="Scan barcode or type and press Enter..." autofocus />
+            <div id="addMedBarcodeStatus" class="barcode-status-indicator"></div>
+            <input type="hidden" id="addMedMedicineId" value="" />
+          </div>
+        </div>
+
+        <!-- Medicine details section -->
+        <div class="modal-form-section" id="medicineDetailsSection">
+          <div class="modal-form-section-title">
+            <span>2. Medicine Information</span>
+            <span id="medLockBadge" class="badge badge-green" style="display:none;">Locked (Existing)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="addMedName">Medicine Name *</label>
+            <input type="text" id="addMedName" required placeholder="e.g. Paracetamol 500mg" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="addMedCategory">Category *</label>
+              <select id="addMedCategory" required>
+                <option value="">Select Category</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="addMedMfg">Manufacturer</label>
+              <input type="text" id="addMedMfg" placeholder="e.g. Cipla / Sun Pharma" />
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="align-items:center;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addMedGst">GST Percent (%) *</label>
+              <select id="addMedGst" required>
+                <option value="0">0%</option>
+                <option value="5" selected>5%</option>
+                <option value="12">12%</option>
+                <option value="18">18%</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0; padding-top:18px;">
+              <label class="toggle-label">
+                <input type="checkbox" id="addMedRx" />
+                <span>Prescription Required (Rx)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Batch details section -->
+        <div class="modal-form-section">
+          <div class="modal-form-section-title">
+            <span>3. Batch Stock Details</span>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="addBatchNo">Batch Number *</label>
+              <input type="text" id="addBatchNo" required placeholder="e.g. B-102" />
+            </div>
+            <div class="form-group">
+              <label for="addBatchExpiry">Expiry Date *</label>
+              <input type="date" id="addBatchExpiry" required />
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="addBatchQty">Quantity (Units) *</label>
+              <input type="number" id="addBatchQty" min="0" step="1" required placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label for="addBatchPurchase">Purchase Price (₹) *</label>
+              <input type="number" id="addBatchPurchase" min="0.01" step="0.01" required placeholder="0.00" />
+            </div>
+            <div class="form-group">
+              <label for="addBatchSelling">MRP / Selling Price (₹) *</label>
+              <input type="number" id="addBatchSelling" min="0.01" step="0.01" required placeholder="0.00" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addBatchVendor">Vendor / Supplier *</label>
+              <select id="addBatchVendor" required>
+                <option value="">Select Vendor</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addBatchRack">Rack / Shelf Location *</label>
+              <select id="addBatchRack" required>
+                <!-- Populated dynamically with last-used rack default -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalAddMedicine')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveMedicine">+ Save Medicine & Batch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Edit Batch Modal -->
+  <div class="modal-overlay" id="modalEditBatch">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="editBatchTitle">Edit Batch</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalEditBatch')">&times;</button>
+      </div>
+
+      <div id="editBatchError" class="modal-error"></div>
+
+      <form id="formEditBatch" onsubmit="onEditBatchSubmit(event)">
+        <input type="hidden" id="editBatchId" />
+
+        <div class="modal-form-section" style="background:#eff6ff; border-color:#bfdbfe;">
+          <div style="font-size:.85rem; color:var(--gray-600);">Medicine:</div>
+          <div id="editBatchMedicineName" style="font-weight:700; font-size:1.05rem; color:var(--gray-900);">—</div>
+          <div style="font-size:.8rem; color:var(--gray-500); margin-top:2px;">
+            Barcode: <code id="editBatchBarcode">—</code>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="editBatchNo">Batch Number *</label>
+            <input type="text" id="editBatchNo" required />
+          </div>
+          <div class="form-group">
+            <label for="editBatchExpiry">Expiry Date *</label>
+            <input type="date" id="editBatchExpiry" required />
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label for="editBatchQty">Quantity *</label>
+            <input type="number" id="editBatchQty" min="0" step="1" required />
+          </div>
+          <div class="form-group">
+            <label for="editBatchPurchase">Purchase Price (₹) *</label>
+            <input type="number" id="editBatchPurchase" min="0.01" step="0.01" required />
+          </div>
+          <div class="form-group">
+            <label for="editBatchSelling">MRP / Selling Price (₹) *</label>
+            <input type="number" id="editBatchSelling" min="0.01" step="0.01" required />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="editBatchVendor">Vendor *</label>
+            <select id="editBatchVendor" required></select>
+          </div>
+          <div class="form-group">
+            <label for="editBatchRack">Rack *</label>
+            <select id="editBatchRack" required></select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalEditBatch')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Batch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Vendor Add/Edit Modal -->
+  <div class="modal-overlay" id="modalVendor">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="vendorModalTitle">Add Vendor</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalVendor')">&times;</button>
+      </div>
+
+      <div id="vendorModalError" class="modal-error"></div>
+
+      <form id="formVendor" onsubmit="onVendorSubmit(event)">
+        <input type="hidden" id="vendorModalId" />
+
+        <div class="form-group">
+          <label for="vendorName">Vendor Name *</label>
+          <input type="text" id="vendorName" required placeholder="e.g. MedSupply Distributors" />
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="vendorPhone">Phone</label>
+            <input type="text" id="vendorPhone" placeholder="e.g. 9876543210" />
+          </div>
+          <div class="form-group">
+            <label for="vendorEmail">Email</label>
+            <input type="email" id="vendorEmail" placeholder="e.g. contact@medsupply.com" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="vendorAddress">Address</label>
+          <textarea id="vendorAddress" rows="2" placeholder="Street, City, Pincode"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalVendor')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveVendor">Save Vendor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Import CSV Modal -->
+  <div class="modal-overlay" id="modalImportCsv">
+    <div class="modal" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>📁 Import Inventory from CSV</h3>
+        <button type="button" class="modal-close" onclick="closeModal('modalImportCsv')">&times;</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <p style="font-size:.85rem; color:var(--gray-600); margin:0;">
+          Upload a batch CSV file to import medicines and stock.
+        </p>
+        <a href="/api/inventory/import/template" download="inventory_template.csv" class="btn btn-outline btn-sm" style="white-space:nowrap;">
+          ⬇️ Sample Template
+        </a>
+      </div>
+
+      <div id="csvModalError" class="modal-error"></div>
+
+      <form id="formImportCsv" onsubmit="onImportCsvSubmit(event)">
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none;" onchange="onCsvFileSelected(event)" />
+        
+        <div id="csvDropZone" class="csv-drop-zone" onclick="document.getElementById('csvFileInput').click()">
+          <div style="font-size:2rem; margin-bottom:6px;">📄</div>
+          <div style="font-weight:600; color:var(--gray-800);">Click to browse or drag &amp; drop CSV file here</div>
+          <div style="font-size:.8rem; color:var(--gray-500); margin-top:4px;">Supported format: .csv with required headers</div>
+          <div id="csvSelectedFileName" style="font-weight:600; color:var(--primary); margin-top:8px;"></div>
+        </div>
+
+        <!-- Result Summary Box -->
+        <div id="csvResultSummary" style="display:none; margin-top:16px;">
+          <div style="font-weight:700; font-size:.9rem; margin-bottom:8px;">Import Result Summary:</div>
+          <div style="display:flex; gap:10px; margin-bottom:12px;">
+            <span class="badge badge-green" id="csvResultAdded" style="padding:6px 12px; font-size:.85rem;">0 Added</span>
+            <span class="badge badge-yellow" id="csvResultSkipped" style="padding:6px 12px; font-size:.85rem;">0 Skipped</span>
+          </div>
+
+          <div id="csvErrorsBox" style="display:none; max-height:160px; overflow-y:auto; border:1px solid #fecaca; border-radius:var(--radius); padding:10px; background:#fff5f5;">
+            <div style="font-weight:600; font-size:.8rem; color:var(--red); margin-bottom:4px;">Errors &amp; Skipped Details:</div>
+            <ul id="csvErrorsList" style="padding-left:18px; font-size:.78rem; color:var(--gray-800); margin:0;"></ul>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalImportCsv')">Close</button>
+          <button type="submit" class="btn btn-primary" id="btnUploadCsv" disabled>Upload &amp; Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/inventory.js"></script>
+</body>
+</html>

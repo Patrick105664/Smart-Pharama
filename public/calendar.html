@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visual Calendar – CityCare Pharmacy</title>
+  <meta name="description" content="SPM Visual Calendar – track batches expiring and entering 30-day warning period" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* ── Visual Calendar Page Styles ─────────────────── */
+    .cal-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .cal-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cal-nav-group {
+      display: inline-flex;
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .cal-nav-btn {
+      background: var(--white);
+      border: none;
+      border-right: 1px solid var(--gray-200);
+      padding: 8px 14px;
+      font-size: .88rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background .15s, color .15s;
+    }
+
+    .cal-nav-btn:last-child {
+      border-right: none;
+    }
+
+    .cal-nav-btn:hover {
+      background: var(--gray-50);
+      color: var(--primary);
+    }
+
+    .cal-nav-btn:active {
+      background: var(--gray-100);
+    }
+
+    .cal-month-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      min-width: 200px;
+    }
+
+    .cal-legend {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: var(--white);
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+      font-size: .82rem;
+      color: var(--gray-600);
+    }
+
+    .cal-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cal-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .cal-legend-dot.dot-red {
+      background: var(--red);
+      box-shadow: 0 0 0 2px var(--red-bg);
+    }
+
+    .cal-legend-dot.dot-yellow {
+      background: #f59e0b;
+      box-shadow: 0 0 0 2px var(--yellow-bg);
+    }
+
+    /* ── Main Layout: Calendar + Side Panel ──────────── */
+    .cal-layout {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      position: relative;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .cal-main {
+      flex: 1;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      min-width: 0;
+    }
+
+    /* ── Days of Week Header ─────────────────────────── */
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .cal-weekday {
+      text-align: center;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 6px 0;
+    }
+
+    /* ── Month Grid ──────────────────────────────────── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .cal-day {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      min-height: 86px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      position: relative;
+      transition: all .15s ease;
+      user-select: none;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .cal-day:hover {
+      background: var(--white);
+      border-color: var(--primary);
+      box-shadow: 0 4px 10px rgba(37, 99, 235, .08);
+      transform: translateY(-1px);
+    }
+
+    .cal-day.other-month {
+      background: #fafafa;
+      opacity: .4;
+      cursor: default;
+      border-color: var(--gray-100);
+    }
+
+    .cal-day.other-month:hover {
+      background: #fafafa;
+      border-color: var(--gray-100);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .cal-day.is-today {
+      background: #eff6ff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .cal-day.is-selected {
+      background: #dbeafe !important;
+      border-color: var(--primary-dark) !important;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .cal-day-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .cal-day-num {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .cal-day.is-today .cal-day-num {
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    .today-tag {
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--white);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--primary-light);
+    }
+
+    .cal-day-dots {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .cal-dot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: .68rem;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .cal-dot-pill .cal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .cal-dot-pill .dot-count {
+      flex-shrink: 0;
+    }
+
+    .cal-dot-pill .dot-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cal-dot-pill.dot-red {
+      background: var(--red-bg);
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .cal-dot-pill.dot-red .cal-dot {
+      background: var(--red);
+    }
+
+    .cal-dot-pill.dot-yellow {
+      background: var(--yellow-bg);
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+    .cal-dot-pill.dot-yellow .cal-dot {
+      background: #d97706;
+    }
+
+    @media (max-width: 1100px) {
+      .cal-dot-pill .dot-text {
+        display: none;
+      }
+    }
+
+    .cal-loading {
+      grid-column: span 7;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-400);
+      font-size: .95rem;
+    }
+
+    /* ── Floating Tooltip ────────────────────────────── */
+    .cal-floating-tooltip {
+      position: fixed;
+      z-index: 10000;
+      background: #1e293b;
+      color: #f8fafc;
+      font-size: .78rem;
+      font-weight: 500;
+      line-height: 1.4;
+      padding: 7px 12px;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      pointer-events: none;
+      max-width: 280px;
+    }
+
+    /* ── Side Panel: Batch Details ───────────────────── */
+    .cal-side-panel {
+      width: 320px;
+      flex-shrink: 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 160px);
+      position: sticky;
+      top: calc(var(--header-h) + 20px);
+    }
+
+    .cal-side-panel.open {
+      display: flex;
+    }
+
+    @media (max-width: 900px) {
+      .cal-layout {
+        flex-direction: column;
+      }
+      .cal-side-panel {
+        width: 100%;
+        position: static;
+        max-height: none;
+      }
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--gray-50);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .panel-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .panel-date-title {
+      font-size: .98rem;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .panel-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-badge {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .panel-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.25rem;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all .15s;
+    }
+
+    .panel-close-btn:hover {
+      background: var(--gray-200);
+      color: var(--gray-700);
+    }
+
+    .panel-body {
+      padding: 14px 18px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-loading, .panel-empty {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--gray-500);
+      font-size: .88rem;
+    }
+
+    .batch-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 4px solid var(--gray-300);
+    }
+
+    .batch-card.border-red {
+      border-left-color: var(--red);
+      background: #fffdfd;
+    }
+
+    .batch-card.border-yellow {
+      border-left-color: #f59e0b;
+      background: #fffdf5;
+    }
+
+    .batch-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .batch-med-name {
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.25;
+    }
+
+    .batch-badge {
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .batch-badge.badge-red {
+      background: var(--red-bg);
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .batch-badge.badge-yellow {
+      background: var(--yellow-bg);
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .batch-details-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 6px 10px;
+      font-size: .8rem;
+    }
+
+    .batch-detail-item {
+      display: flex;
+      gap: 4px;
+      color: var(--gray-700);
+      min-width: 0;
+    }
+
+    .batch-detail-item .lbl {
+      color: var(--gray-500);
+      min-width: 44px;
+      flex-shrink: 0;
+    }
+
+    .batch-detail-item .val {
+      font-weight: 500;
+      color: var(--gray-800);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; color: var(--gray-900); }
+    .badge-rack {
+      background: var(--gray-100);
+      padding: 0 5px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <header class="header" id="header"></header>
+
+    <main class="main-content">
+      <!-- Title & Controls Header -->
+      <div class="cal-header-bar">
+        <div>
+          <h1 class="page-title" style="margin-bottom:4px;">Visual Calendar</h1>
+          <p style="color:var(--gray-500); font-size:.85rem;">
+            Track active batches by expiry date and 30-day early warning start date.
+          </p>
+        </div>
+
+        <div class="cal-controls">
+          <div class="cal-nav-group">
+            <button class="cal-nav-btn" id="calPrevBtn" title="Previous Month">‹ Prev</button>
+            <button class="cal-nav-btn" id="calTodayBtn" title="Go to current month and day">Today</button>
+            <button class="cal-nav-btn" id="calNextBtn" title="Next Month">Next ›</button>
+          </div>
+          <h2 id="calMonthTitle" class="cal-month-title">—</h2>
+        </div>
+
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <span class="cal-legend-dot dot-red"></span>
+            <span>Batches expiring that day (red)</span>
+          </div>
+          <div class="cal-legend-item">
+            <span class="cal-legend-dot dot-yellow"></span>
+            <span>30-day warning starts that day (yellow)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Layout: Grid + Side Panel -->
+      <div class="cal-layout">
+        <div class="cal-main">
+          <!-- Weekday Headers -->
+          <div class="cal-weekdays">
+            <div class="cal-weekday">Sun</div>
+            <div class="cal-weekday">Mon</div>
+            <div class="cal-weekday">Tue</div>
+            <div class="cal-weekday">Wed</div>
+            <div class="cal-weekday">Thu</div>
+            <div class="cal-weekday">Fri</div>
+            <div class="cal-weekday">Sat</div>
+          </div>
+
+          <!-- Calendar Days Grid -->
+          <div class="cal-grid" id="calGrid">
+            <div class="cal-loading">Loading calendar…</div>
+          </div>
+        </div>
+
+        <!-- Side Panel: Batch Details for Selected Day -->
+        <aside class="cal-side-panel open" id="calSidePanel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <div class="panel-date-title" id="panelDateTitle">Select a Day</div>
+              <div class="panel-meta-row">
+                <span class="panel-badge" id="panelCountBadge">0 batches</span>
+              </div>
+            </div>
+            <button class="panel-close-btn" id="closeSidePanelBtn" title="Close details panel">✕</button>
+          </div>
+
+          <div class="panel-body" id="calDayBatches">
+            <div class="panel-empty">Click any day to view expiring batches and warning triggers.</div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/calendar.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initLayout('calendar').then(() => initCalendarPage());
+    });
+  </script>
+</body>
+</html>

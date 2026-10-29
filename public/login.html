@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – CityCare Pharmacy</title>
+  <meta name="description" content="Smart Pharma Management login" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="shop-name">💊 CityCare Pharmacy</div>
+    <h1>Welcome Back</h1>
+    <p class="subtitle">Sign in to Smart Pharma Management</p>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autofocus />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <div id="loginError" class="form-group error-text" style="display:none;"></div>
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
+    </form>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

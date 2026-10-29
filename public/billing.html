@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Billing / POS – CityCare Pharmacy</title>
+  <meta name="description" content="SPM Billing – fast point-of-sale with FEFO and barcode scanning" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <header class="header" id="header"></header>
+    
+    <main class="main-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h1 class="page-title" style="margin:0;">Billing / POS</h1>
+        <span class="badge badge-green" style="font-size:.85rem; padding:4px 10px;">⚡ High-Speed Checkout Active</span>
+      </div>
+
+      <div class="pos-layout">
+        <!-- LEFT: Center Panel with Scan / Search Input & FEFO Smart Tag -->
+        <div class="pos-main-panel">
+          <div class="pos-input-card">
+            <label for="posSearchInput" style="display:block; font-size:.85rem; font-weight:600; color:var(--gray-700); margin-bottom:8px;">
+              Scan Barcode or Search Medicine:
+            </label>
+            <div class="pos-search-wrapper">
+              <span class="pos-search-icon">🔍</span>
+              <input 
+                type="text" 
+                id="posSearchInput" 
+                class="pos-big-input" 
+                placeholder="Scan barcode with USB scanner or type medicine name…" 
+                autocomplete="off" 
+                autofocus 
+              />
+              <div id="posSearchDropdown" class="pos-dropdown"></div>
+            </div>
+
+            <!-- Fixed-height FEFO smart tag (never shifts layout, never steals focus) -->
+            <div id="fefoSmartTag" class="fefo-smart-tag">
+              <span id="fefoTagIcon">🏷️</span>
+              <span id="fefoTagText">Ready for scanning or medicine search</span>
+            </div>
+          </div>
+
+          <!-- Shortcuts & Operator Guidance -->
+          <div style="background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px; font-size:.82rem; color:var(--gray-600); box-shadow:var(--shadow);">
+            <div style="font-weight:700; color:var(--gray-800); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+              <span>⚡ POS Workflow &amp; Shortcuts</span>
+            </div>
+            <ul style="padding-left:18px; margin:0; line-height:1.6;">
+              <li><b>Barcode Scanner:</b> Types digits rapidly and sends <kbd style="background:var(--gray-100); padding:1px 5px; border-radius:3px; border:1px solid var(--gray-300);">Enter</kbd> to add directly.</li>
+              <li><b>Keyboard Search:</b> Use <kbd style="background:var(--gray-100); padding:1px 5px; border-radius:3px; border:1px solid var(--gray-300);">↓</kbd> / <kbd style="background:var(--gray-100); padding:1px 5px; border-radius:3px; border:1px solid var(--gray-300);">↑</kbd> to navigate dropdown results and <kbd style="background:var(--gray-100); padding:1px 5px; border-radius:3px; border:1px solid var(--gray-300);">Enter</kbd> to select.</li>
+              <li><b>FEFO Guarantee:</b> Earliest expiring non-expired batch is automatically picked and split across batches if needed.</li>
+              <li><b>Continuous Scanner Focus:</b> The search input is automatically kept active after every action.</li>
+            </ul>
+          </div>
+
+          <!-- Recent Bills Section -->
+          <div class="pos-input-card" id="recentBillsCard" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="font-size:1rem; font-weight:700; color:var(--gray-900); display:flex; align-items:center; gap:6px; margin:0;">
+                <span>🕒 Recent Bills</span>
+                <span class="badge" style="background:var(--gray-200); color:var(--gray-700); font-size:.72rem;" id="recentBillsCount">Last 10</span>
+              </h3>
+              <button type="button" class="btn btn-outline btn-sm" onclick="loadRecentBills()" title="Refresh recent bills" style="padding:4px 8px; font-size:.78rem;">
+                🔄 Refresh
+              </button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="table" style="font-size:.82rem; margin:0; width:100%;">
+                <thead>
+                  <tr style="background:var(--gray-50);">
+                    <th>Bill No</th>
+                    <th>Date / Time</th>
+                    <th>Customer</th>
+                    <th>Mode</th>
+                    <th style="text-align:right;">Amount</th>
+                    <th style="text-align:center;">Invoice PDF</th>
+                  </tr>
+                </thead>
+                <tbody id="recentBillsTableBody">
+                  <tr>
+                    <td colspan="6" class="table-empty">Loading recent bills…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Cart & Bill Summary Sidebar -->
+        <aside class="pos-sidebar">
+          <div class="pos-sidebar-header">
+            <h2>
+              <span>🧾 Current Bill</span>
+              <span id="cartCountBadge" class="badge badge-blue" style="font-size:.78rem; margin-left:4px;">0</span>
+            </h2>
+            <button type="button" class="btn btn-outline btn-sm" id="btnClearCart" style="display:none;" onclick="onClearCartClick()">
+              Clear Cart
+            </button>
+          </div>
+
+          <!-- Scrollable Cart Items Container -->
+          <div id="posCartContainer" class="pos-cart-container">
+            <div class="cart-empty-state" id="cartEmptyState">
+              <div style="font-size:2.5rem; margin-bottom:10px;">🛒</div>
+              <div style="font-weight:600; color:var(--gray-700); font-size:.95rem;">Cart is empty</div>
+              <p style="font-size:.82rem; margin-top:4px;">Scan an item or type to begin adding medicines</p>
+            </div>
+            <div id="cartItemsList"></div>
+          </div>
+
+          <!-- Bill Summary & Checkout Section -->
+          <div class="pos-sidebar-footer">
+            <table class="pos-totals-table">
+              <tr>
+                <td style="color:var(--gray-600);">Taxable Value:</td>
+                <td id="posTaxableTotal">₹0.00</td>
+              </tr>
+              <tr>
+                <td style="color:var(--gray-600);">Total GST:</td>
+                <td id="posGstTotal">₹0.00</td>
+              </tr>
+              <tr class="pos-grand-total-row">
+                <td>Grand Total:</td>
+                <td id="posGrandTotal">₹0.00</td>
+              </tr>
+            </table>
+
+            <!-- Checkout customer info & payment mode -->
+            <div class="pos-checkout-meta">
+              <input type="text" id="posCustName" placeholder="Customer Name (optional)" autocomplete="off" />
+              <input type="text" id="posCustPhone" placeholder="Customer Phone (optional)" autocomplete="off" />
+              <select id="posPayMode">
+                <option value="cash" selected>Payment: Cash</option>
+                <option value="upi">Payment: UPI / QR</option>
+                <option value="card">Payment: Card</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn-checkout-now" id="btnCheckout" onclick="onCheckoutClick()" disabled>
+              <span>💳 Checkout Bill</span>
+            </button>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- SUCCESS MODAL: Checkout Completed -->
+  <div class="modal-overlay" id="modalCheckoutSuccess">
+    <div class="modal" style="max-width: 480px; text-align:center;">
+      <div style="font-size:3.5rem; margin:10px 0 6px; line-height:1;">🎉</div>
+      <h2 style="font-size:1.4rem; font-weight:800; color:var(--gray-900); margin-bottom:4px;">
+        Payment Successful!
+      </h2>
+      <p style="font-size:.9rem; color:var(--gray-600); margin-bottom:16px;">
+        Bill <code id="successBillNo" style="font-size:1.1rem; font-weight:700; color:var(--primary); background:var(--primary-light); padding:2px 8px; border-radius:4px;">INV-0000</code> generated successfully.
+      </p>
+
+      <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px; margin-bottom:20px;">
+        <div style="font-size:.85rem; color:var(--gray-500); margin-bottom:4px;">Amount Received</div>
+        <div id="successGrandTotal" style="font-size:1.8rem; font-weight:800; color:var(--green); font-family:monospace;">
+          ₹0.00
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button type="button" class="btn btn-primary" id="btnDownloadPdf" style="padding:12px; font-weight:600; font-size:.95rem;">
+          📄 Download Invoice PDF
+        </button>
+        <button type="button" class="btn btn-outline" onclick="onNewBillClick()" style="padding:10px;">
+          + Start New Bill
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/billing.js"></script>
+</body>
+</html>

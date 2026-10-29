@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – CityCare Pharmacy</title>
+  <meta name="description" content="SPM Dashboard – stock, expiry and sales overview" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* Dashboard-specific styles */
+    .dash-cards { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .dash-card  { flex:1 1 180px; background:var(--white); border:1px solid var(--gray-200);
+                  border-radius:10px; padding:1.1rem 1.3rem; min-width:160px; }
+    .dash-card .dc-label  { font-size:.75rem; color:var(--gray-500); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.35rem; }
+    .dash-card .dc-value  { font-size:1.6rem; font-weight:700; color:var(--gray-800); line-height:1.1; }
+    .dash-card .dc-sub    { font-size:.72rem; color:var(--gray-400); margin-top:.2rem; }
+    .dash-card.card-red   { border-left:4px solid var(--red); }
+    .dash-card.card-yellow{ border-left:4px solid #f59e0b; }
+    .dash-card.card-green { border-left:4px solid var(--green); }
+    .dash-card.card-blue  { border-left:4px solid #3b82f6; }
+    .dash-card.card-ticker{ border-left:4px solid #8b5cf6; min-width:300px; }
+    .ticker-row { display:flex; gap:1.2rem; }
+    .ticker-item { flex:1; }
+    .ticker-item .t-label { font-size:.7rem; color:var(--gray-500); text-transform:uppercase; letter-spacing:.05em; }
+    .ticker-item .t-val   { font-size:1.15rem; font-weight:700; }
+    .ticker-item.saved .t-val  { color:#16a34a; }
+    .ticker-item.lost  .t-val  { color:var(--red); }
+
+    .dash-mid   { display:flex; gap:1.2rem; margin-bottom:1.5rem; align-items:flex-start; flex-wrap:wrap; min-width:0; }
+    .donut-wrap { background:var(--white); border:1px solid var(--gray-200); border-radius:10px;
+                  padding:1.2rem; flex:0 0 300px; max-width:100%; }
+    .donut-wrap h3 { font-size:.85rem; color:var(--gray-600); margin-bottom:.8rem; }
+    .donut-legend { display:flex; gap:.8rem; margin-top:.9rem; justify-content:center; }
+    .legend-item  { display:flex; align-items:center; gap:.35rem; font-size:.78rem; color:var(--gray-600); }
+    .legend-dot   { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+    .actions-wrap { flex:1 1 360px; min-width:0; background:var(--white); border:1px solid var(--gray-200);
+                    border-radius:10px; padding:1.2rem; }
+    .actions-wrap h3 { font-size:.9rem; font-weight:600; color:var(--gray-700); margin-bottom:.9rem; }
+    .action-row   { display:flex; align-items:center; justify-content:space-between;
+                    padding:.5rem 0; border-bottom:1px solid var(--gray-100); gap:.5rem; }
+    .action-row:last-child { border-bottom:none; }
+    .action-info  { flex:1; min-width:0; }
+    .action-name  { font-size:.82rem; font-weight:600; color:var(--gray-800);
+                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .action-meta  { font-size:.75rem; color:var(--gray-500); }
+    .action-status-red    { color:var(--red); font-weight:600; }
+    .action-status-yellow { color:#d97706; font-weight:600; }
+    .btn-sm-red  { padding:.25rem .65rem; font-size:.75rem; background:var(--red); color:#fff;
+                   border:none; border-radius:5px; cursor:pointer; white-space:nowrap; }
+    .btn-sm-amber{ padding:.25rem .65rem; font-size:.75rem; background:#f59e0b; color:#fff;
+                   border:none; border-radius:5px; cursor:pointer; white-space:nowrap; }
+    .badge-done  { padding:.25rem .65rem; font-size:.72rem; background:var(--gray-100);
+                   color:var(--gray-500); border-radius:5px; white-space:nowrap; }
+
+    .alert-feed  { background:var(--white); border:1px solid var(--gray-200); border-radius:10px; padding:1.2rem; }
+    .alert-feed h3 { font-size:.9rem; font-weight:600; color:var(--gray-700); margin-bottom:.8rem; }
+    .alert-item  { display:flex; align-items:center; gap:.6rem; padding:.45rem .6rem;
+                   border-radius:6px; margin-bottom:.4rem; font-size:.82rem; }
+    .alert-item:last-child { margin-bottom:0; }
+    .alert-expired  { background:#fef2f2; color:#b91c1c; }
+    .alert-today    { background:#fff7ed; color:#c2410c; }
+    .alert-warning  { background:#fffbeb; color:#b45309; }
+    .alert-lowstock { background:#eff6ff; color:#1d4ed8; }
+    .alert-none     { color:var(--gray-400); font-size:.82rem; }
+
+    /* Low-stock popup */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35);
+                     z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.show { display:flex; }
+    .modal-box  { background:#fff; border-radius:12px; width:520px; max-width:95vw;
+                  max-height:80vh; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+    .modal-head { display:flex; align-items:center; justify-content:space-between;
+                  padding:.9rem 1.2rem; border-bottom:1px solid var(--gray-200); }
+    .modal-head h3 { font-size:.95rem; font-weight:700; color:var(--gray-800); }
+    .modal-close{ background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--gray-500); }
+    .modal-body { overflow-y:auto; padding:1rem 1.2rem; flex:1; }
+    .ls-table   { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .ls-table th{ text-align:left; font-size:.72rem; color:var(--gray-500); text-transform:uppercase;
+                  letter-spacing:.05em; border-bottom:1px solid var(--gray-200); padding:.4rem .5rem; }
+    .ls-table td{ padding:.45rem .5rem; border-bottom:1px solid var(--gray-100); color:var(--gray-700); }
+    .ls-zero    { color:var(--red); font-weight:700; }
+    .ls-low     { color:#d97706; font-weight:600; }
+    .card-clickable { cursor:pointer; }
+    .card-clickable:hover { border-color:#93c5fd; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="header" id="header"></header>
+  <main class="main-content">
+    <h1 class="page-title">Dashboard</h1>
+
+    <!-- Cards -->
+    <div class="dash-cards" id="dashCards">
+      <div class="dash-card" style="opacity:.5"><div class="dc-label">Loading…</div></div>
+    </div>
+
+    <!-- Middle: donut + actions -->
+    <div class="dash-mid">
+      <div class="donut-wrap">
+        <h3>Stock by Expiry Status</h3>
+        <canvas id="donutChart" width="260" height="200"></canvas>
+        <div class="donut-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Expired</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Expiring Soon</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>Safe</span>
+        </div>
+      </div>
+      <div class="actions-wrap">
+        <h3>⚡ Immediate Actions Needed</h3>
+        <div id="actionsList"><div style="color:var(--gray-400);font-size:.82rem;">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Alert feed -->
+    <div class="alert-feed">
+      <h3>🔔 Alert Feed</h3>
+      <div id="alertFeed"><div class="alert-none">Loading…</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Low-stock popup -->
+<div class="modal-overlay" id="lowStockModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>📦 Low Stock Medicines</h3>
+      <button class="modal-close" onclick="closeLowStockModal()" title="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="lowStockBody"><div style="color:var(--gray-400);font-size:.82rem;">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/chart.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/dashboard.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => initLayout('dashboard').then(() => loadDashboard()));
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports &amp; Financials – CityCare Pharmacy</title>
+  <meta name="description" content="SPM Financial performance, distributor returns and flash sale marketing list" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* ── Reports Page Specific Styles ─────────────────────── */
+    .report-section {
+      margin-bottom: 32px;
+    }
+
+    .report-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Button groups */
+    .filter-btn-group {
+      display: inline-flex;
+      background: var(--white);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .filter-btn {
+      background: var(--white);
+      border: none;
+      border-right: 1px solid var(--gray-200);
+      padding: 7px 14px;
+      font-size: .83rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all .15s ease;
+      white-space: nowrap;
+    }
+
+    .filter-btn:last-child {
+      border-right: none;
+    }
+
+    .filter-btn:hover {
+      background: var(--gray-50);
+      color: var(--primary);
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    /* Finance summary cards */
+    .finance-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .fin-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .fin-card .fc-label {
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+
+    .fin-card .fc-val {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.15;
+    }
+
+    .fin-card .fc-sub {
+      font-size: .75rem;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+
+    .fin-card.accent-blue   { border-left: 4px solid var(--primary); }
+    .fin-card.accent-purple { border-left: 4px solid #8b5cf6; }
+    .fin-card.accent-green  { border-left: 4px solid var(--green); }
+    .fin-card.accent-green .fc-val { color: #16a34a; }
+    .fin-card.accent-red    { border-left: 4px solid var(--red); }
+    .fin-card.accent-red .fc-val { color: var(--red); }
+
+    /* Chart wrap */
+    .chart-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .chart-card-head h4 {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 240px;
+      width: 100%;
+    }
+
+    /* Vendor return groups */
+    .vendor-return-group {
+      margin-bottom: 20px;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      background: var(--white);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .vendor-return-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .vendor-group-header {
+      background: var(--gray-100);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .vendor-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vendor-name {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .vendor-totals {
+      display: flex;
+      gap: 16px;
+      font-size: .83rem;
+      color: var(--gray-600);
+    }
+
+    .vendor-totals b {
+      color: var(--gray-900);
+    }
+
+    .returns-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem;
+    }
+
+    .returns-table th {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: .75rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .returns-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      vertical-align: middle;
+    }
+
+    .returns-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Marketing list */
+    .marketing-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .badge-rack {
+      background: var(--gray-100);
+      color: var(--primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: .78rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <header class="header" id="header"></header>
+
+    <main class="main-content">
+      <!-- Page Header -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1 class="page-title" style="margin-bottom:4px;">Reports &amp; Financials</h1>
+          <p style="color:var(--gray-500); font-size:.85rem;">
+            Owner-only financial totals, distributor returns tracking, and promotional marketing lists.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECTION 1: Finance Overview -->
+      <section class="report-section" id="secFinance">
+        <div class="report-section-header">
+          <div class="section-title">
+            <span>📊</span> Financial Performance
+          </div>
+
+          <div class="section-controls">
+            <!-- Date Filter Button Group -->
+            <div class="filter-btn-group" id="financeFilterGroup">
+              <button type="button" class="filter-btn finance-range-btn" data-range="today">Today</button>
+              <button type="button" class="filter-btn finance-range-btn" data-range="7d">Last 7 days</button>
+              <button type="button" class="filter-btn finance-range-btn active" data-range="month">This month</button>
+              <button type="button" class="filter-btn finance-range-btn" data-range="all">All time</button>
+            </div>
+
+            <!-- PDF Download Button (wired in step 6.4) -->
+            <button type="button" class="btn btn-outline" id="btnFinancePdf" title="Download financial report PDF">
+              📄 Download PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="finance-cards-grid" id="financeCards">
+          <div class="fin-card accent-blue">
+            <div class="fc-label">Total Revenue</div>
+            <div class="fc-val" id="finTotalSales">₹0.00</div>
+            <div class="fc-sub">From customer bills</div>
+          </div>
+
+          <div class="fin-card accent-purple">
+            <div class="fc-label">Total Bills</div>
+            <div class="fc-val" id="finBillCount">0 bills</div>
+            <div class="fc-sub">Completed transactions</div>
+          </div>
+
+          <div class="fin-card">
+            <div class="fc-label">GST Collected</div>
+            <div class="fc-val" id="finGstTotal">₹0.00</div>
+            <div class="fc-sub">Tax component</div>
+          </div>
+
+          <div class="fin-card accent-green">
+            <div class="fc-label">Money Saved by Flash Sales</div>
+            <div class="fc-val" id="finMoneySaved">₹0.00</div>
+            <div class="fc-sub">Discounts recovered</div>
+          </div>
+
+          <div class="fin-card accent-red" style="grid-column: span 2;">
+            <div class="fc-label">Money Lost to Expiry</div>
+            <div class="fc-val" id="finMoneyLost">₹0.00</div>
+            <div class="fc-sub" id="finLostBreakdown">Expired stock &amp; unrecovered returns</div>
+          </div>
+        </div>
+
+        <!-- Bar Chart -->
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <h4>Flash Sales Revenue vs Money Lost to Expiry</h4>
+            <span style="font-size:.78rem; color:var(--gray-500);">Direct cost-benefit comparison</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="financeBarChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Distributor Returns -->
+      <section class="report-section" id="secReturns">
+        <div class="report-section-header">
+          <div class="section-title">
+            <span>📦</span> Distributor Returns
+          </div>
+
+          <div class="section-controls">
+            <!-- Status Filter -->
+            <div class="filter-btn-group" id="returnsFilterGroup">
+              <button type="button" class="filter-btn returns-filter-btn active" data-status="">All</button>
+              <button type="button" class="filter-btn returns-filter-btn" data-status="to_return">To Return</button>
+              <button type="button" class="filter-btn returns-filter-btn" data-status="shipped">Shipped</button>
+              <button type="button" class="filter-btn returns-filter-btn" data-status="returned">Returned</button>
+            </div>
+
+            <!-- PDF Download Button (wired in step 6.4) -->
+            <button type="button" class="btn btn-outline" id="btnReturnsPdf" title="Download distributor returns report PDF">
+              📄 Download PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Returns table container (grouped by vendor) -->
+        <div class="table-wrapper" id="returnsTableContainer">
+          <div class="table-empty">Loading returns…</div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Marketing List -->
+      <section class="report-section" id="secMarketing">
+        <div class="report-section-header">
+          <div class="section-title">
+            <span>🏷️</span> Marketing List (Yellow Batches)
+          </div>
+
+          <div class="section-controls">
+            <button type="button" class="btn btn-primary" id="btnGenerateMarketing">
+              ⚡ Generate Marketing List
+            </button>
+            <!-- PDF Download Button (wired in step 6.4) -->
+            <button type="button" class="btn btn-outline" id="btnMarketingPdf" title="Download marketing list PDF">
+              📄 Download PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Marketing list table -->
+        <div class="card table-wrapper marketing-card" id="marketingContainer" style="display:none;">
+          <div style="padding:14px 18px; border-bottom:1px solid var(--gray-200); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:600; color:var(--gray-800); font-size:.9rem;">
+              Yellow Batches Eligible for Flash Sales &amp; Marketing
+            </div>
+            <span class="badge badge-yellow" id="mktCountBadge">0 batches</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine Name</th>
+                <th>Batch No</th>
+                <th>Expiry Date</th>
+                <th>Days Left</th>
+                <th>Rack</th>
+                <th>Stock Qty</th>
+                <th>MRP</th>
+                <th>Today's Flash Price</th>
+              </tr>
+            </thead>
+            <tbody id="marketingTableBody">
+              <tr>
+                <td colspan="8" class="table-empty">Click "Generate Marketing List" to display yellow batches.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/chart.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/reports.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initLayout('reports').then(() => initReportsPage());
+    });
+  </script>
+</body>
+</html>
